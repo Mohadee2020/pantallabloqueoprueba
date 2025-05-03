@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pantalla de Bloqueo iPhone</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            background-color: #000;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+        }
+
+        .background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('https://source.unsplash.com/random/1080x1920/?nature,sky');
+            background-size: cover;
+            background-position: center;
+            z-index: -1;
+            opacity: 0.9;
+        }
+
+        .status-bar {
+            width: 100%;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .time-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: -100px;
+        }
+
+        .time {
+            font-size: 80px;
+            font-weight: 300;
+            margin-bottom: 5px;
+        }
+
+        .date {
+            font-size: 20px;
+            font-weight: 400;
+        }
+
+        .unlock-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 50px;
+            cursor: pointer;
+        }
+
+        .unlock-text {
+            font-size: 16px;
+            font-weight: 400;
+            position: relative;
+            padding: 10px 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            animation: pulse 2s infinite;
+        }
+
+        .unlock-text::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            right: 10px;
+            transform: translateY(-50%);
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.8; }
+            50% { opacity: 1; }
+            100% { opacity: 0.8; }
+        }
+
+        .slide-to-unlock {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            transform: translateY(100%);
+            transition: transform 0.5s ease-out;
+            z-index: 10;
+        }
+
+        .unlocking .slide-to-unlock {
+            transform: translateY(0);
+        }
+
+        @media (max-width: 500px) {
+            .time {
+                font-size: 60px;
+            }
+            
+            .date {
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="background"></div>
+    <div class="status-bar">
+        <span id="time-status">9:41</span>
+        <span id="battery-status">100% <i class="battery-icon">🔋</i></span>
+    </div>
+
+    <div class="time-container">
+        <div class="time" id="time">00:00</div>
+        <div class="date" id="date">lunes, 1 de enero</div>
+    </div>
+
+    <div class="unlock-container" id="unlock">
+        <div class="unlock-text">Desliza para desbloquear</div>
+    </div>
+
+    <div class="slide-to-unlock"></div>
+
+    <script>
+        // Actualizar hora y fecha en tiempo real
+        function updateTime() {
+            const now = new Date();
+            const timeElement = document.getElementById('time');
+            const dateElement = document.getElementById('date');
+            const timeStatusElement = document.getElementById('time-status');
+            
+            // Formatear hora
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            timeElement.textContent = `${hours}:${minutes}`;
+            timeStatusElement.textContent = `${hours}:${minutes}`;
+            
+            // Formatear fecha
+            const options = { weekday: 'long', day: 'numeric', month: 'long' };
+            const dateString = now.toLocaleDateString('es-ES', options);
+            dateElement.textContent = dateString;
+        }
+
+        // Actualizar cada minuto
+        updateTime();
+        setInterval(updateTime, 60000);
+
+        // Simular batería
+        function updateBattery() {
+            const batteryElement = document.getElementById('battery-status');
+            // Simular carga aleatoria entre 20% y 100%
+            const charge = Math.floor(Math.random() * 80) + 20;
+            batteryElement.textContent = `${charge}% ${charge > 20 ? '🔋' : '🪫'}`;
+        }
+
+        updateBattery();
+        setInterval(updateBattery, 30000);
+
+        // Manejar desbloqueo
+        const unlockElement = document.getElementById('unlock');
+        const slideToUnlock = document.querySelector('.slide-to-unlock');
+        let startY, moveY;
+
+        unlockElement.addEventListener('click', handleUnlock);
+        unlockElement.addEventListener('touchstart', handleTouchStart, { passive: false });
+        unlockElement.addEventListener('touchmove', handleTouchMove, { passive: false });
+        unlockElement.addEventListener('touchend', handleTouchEnd);
+
+        function handleUnlock() {
+            document.body.classList.add('unlocking');
+            setTimeout(() => {
+                window.location.href = 'https://instagram.com';
+            }, 500);
+        }
+
+        function handleTouchStart(e) {
+            startY = e.touches[0].clientY;
+        }
+
+        function handleTouchMove(e) {
+            moveY = e.touches[0].clientY;
+            const diff = startY - moveY;
+            
+            if (diff > 50) { // Umbral de deslizamiento
+                handleUnlock();
+            }
+        }
+
+        function handleTouchEnd() {
+            // Podríamos añadir más lógica aquí si fuera necesario
+        }
+
+        // Cambiar fondo aleatorio cada cierto tiempo (opcional)
+        function changeBackground() {
+            const backgrounds = [
+                'https://source.unsplash.com/random/1080x1920/?sky',
+                'https://source.unsplash.com/random/1080x1920/?nature',
+                'https://source.unsplash.com/random/1080x1920/?mountain',
+                'https://source.unsplash.com/random/1080x1920/?beach',
+                'https://source.unsplash.com/random/1080x1920/?flower'
+            ];
+            const randomBg = backgrounds[Math.floor(Math.random() * backgrounds.length)];
+            document.querySelector('.background').style.backgroundImage = `url(${randomBg})`;
+        }
+
+        // Cambiar cada 30 segundos (opcional)
+        // setInterval(changeBackground, 30000);
+    </script>
+</body>
+</html>
